@@ -19,7 +19,6 @@ const MapComponent = () => {
     homeLocation, 
     nearbySensors, 
     currentStatus,
-    setMap,
     calculateDistance
   } = useAppStore();
 
@@ -48,7 +47,6 @@ const MapComponent = () => {
     }).addTo(map);
 
     mapRef.current = map;
-    setMap(map);
     setMapLoaded(true);
 
     // Cleanup on unmount
@@ -56,7 +54,6 @@ const MapComponent = () => {
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
-        setMap(null);
       }
     };
   }, [setMap]);

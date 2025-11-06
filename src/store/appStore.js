@@ -29,7 +29,7 @@ export const useAppStore = create(
       // Map and location state
       userLocation: null, // User's current physical location
       homeLocation: null, // The saved location we are monitoring
-      map: null,
+
       
       // Data from the backend
       nearbySensors: [], // This will now come from threatData
@@ -220,7 +220,7 @@ export const useAppStore = create(
       setCompletedOnboarding: (completed) => {
         set({ hasCompletedOnboarding: completed, isOnboarding: false });
       },
-      setMap: (map) => set({ map }),
+
       calculateDistance: (lat1, lng1, lat2, lng2) => {
         const R = 6371; // Earth's radius in km
         const dLat = (lat2 - lat1) * Math.PI / 180;
