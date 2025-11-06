@@ -1,0 +1,192 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* Custom styles for Leaflet maps */
+@import 'leaflet/dist/leaflet.css';
+
+/* Global styles */
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: #F9FAFB;
+  color: #111827;
+  overflow: hidden;
+}
+
+/* PWA Fullscreen Styles */
+.pwa-fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
+}
+
+/* Map container fixes */
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  background: #f0f0f0;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 12px !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.08) !important;
+}
+
+.leaflet-popup-content {
+  margin: 16px !important;
+  font-family: 'Inter', sans-serif !important;
+}
+
+/* Custom marker styles */
+.custom-marker {
+  background: white;
+  border: 3px solid #0057B7;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.06);
+}
+
+.custom-marker.danger {
+  border-color: #DC2626;
+  background: #FEE2E2;
+}
+
+.custom-marker.success {
+  border-color: #16A34A;
+  background: #DCFCE7;
+}
+
+/* Status sheet animations */
+.status-sheet-enter {
+  transform: translateY(100%);
+  opacity: 0;
+}
+
+.status-sheet-enter-active {
+  transform: translateY(0);
+  opacity: 1;
+  transition: all 300ms ease-out;
+}
+
+.status-sheet-exit {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.status-sheet-exit-active {
+  transform: translateY(100%);
+  opacity: 0;
+  transition: all 300ms ease-in;
+}
+
+/* Loading spinner */
+.loading-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Button hover effects */
+.btn-primary {
+  background: #0057B7;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 16px 32px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 200ms ease-out;
+  min-height: 48px;
+  min-width: 48px;
+}
+
+.btn-primary:hover {
+  background: #0369a1;
+  transform: scale(0.98);
+}
+
+.btn-primary:active {
+  transform: scale(0.96);
+}
+
+.btn-danger {
+  background: #DC2626;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 16px 32px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 200ms ease-out;
+  min-height: 48px;
+  min-width: 48px;
+}
+
+.btn-danger:hover {
+  background: #b91c1c;
+  transform: scale(0.98);
+}
+
+.btn-danger:active {
+  transform: scale(0.96);
+}
+
+/* Utility classes */
+.touch-target {
+  min-height: 48px;
+  min-width: 48px;
+}
+
+.text-shadow {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  .loading-spinner {
+    animation: none;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .btn-primary {
+    border: 2px solid #000;
+  }
+  
+  .btn-danger {
+    border: 2px solid #000;
+  }
+}

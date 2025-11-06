@@ -1,0 +1,44 @@
+[build]
+  # Build command
+  command = "npm run build"
+  # Publish directory for static files
+  publish = "dist"
+  # Netlify Functions directory
+  functions = "netlify/functions"
+
+# Build environment variables
+[build.environment]
+  NODE_VERSION = "18"
+
+# Headers for static files
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Headers for API functions
+[[headers]]
+  for = "/.netlify/functions/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization"
+
+# Redirects for SPA
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Scheduled Functions
+[[scheduled.functions]]
+  path = "check-for-threats"
+  schedule = "*/10 * * * *"
+
+# Environment variables that will be available in functions
+[functions."check-for-threats".environment]
+  PAGASA_API_URL = "https://www.panahon.gov.ph/api/v1/aws"
+  THREAT_THRESHOLD = "2.0"

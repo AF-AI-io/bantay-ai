@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline - Bantay-AI</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #0057B7 0%, #0369a1 100%);
+      color: white;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    
+    .container {
+      text-align: center;
+      max-width: 400px;
+    }
+    
+    .icon {
+      width: 80px;
+      height: 80px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 32px;
+      font-size: 40px;
+    }
+    
+    h1 {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      line-height: 1.2;
+    }
+    
+    p {
+      font-size: 16px;
+      line-height: 1.5;
+      margin-bottom: 32px;
+      opacity: 0.9;
+    }
+    
+    .status {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 32px;
+      border-left: 4px solid #16A34A;
+    }
+    
+    .status.offline {
+      border-left-color: #DC2626;
+    }
+    
+    .retry-btn {
+      background: white;
+      color: #0057B7;
+      border: none;
+      border-radius: 12px;
+      padding: 16px 32px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+    
+    .retry-btn:hover {
+      transform: scale(0.98);
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+    
+    .pulse {
+      animation: pulse 2s infinite;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">🌊</div>
+    <h1>Bantay-AI</h1>
+    <div id="status" class="status offline">
+      <strong>You're Offline</strong>
+      <p>Some features may not be available. Your last known status will be displayed when you reconnect.</p>
+    </div>
+    <p>This is a safety app designed to work offline. Critical alerts and your home location are cached for offline access.</p>
+    <button class="retry-btn" onclick="retryConnection()">Try Again</button>
+  </div>
+
+  <script>
+    function retryConnection() {
+      if (navigator.onLine) {
+        window.location.href = '/';
+      } else {
+        alert('Still offline. Please check your internet connection.');
+      }
+    }
+    
+    // Listen for online event
+    window.addEventListener('online', () => {
+      window.location.href = '/';
+    });
+    
+    // Check if we're back online every 5 seconds
+    setInterval(() => {
+      if (navigator.onLine) {
+        window.location.href = '/';
+      }
+    }, 5000);
+  </script>
+</body>
+</html>

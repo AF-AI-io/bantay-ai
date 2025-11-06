@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bantay-AI - Flood Warning System</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0057B7">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/zustand/umd/zustand.development.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: #f8fafc; }
+        
+        .app { min-height: 100vh; }
+        .header { background: #0057B7; color: white; padding: 1rem; text-align: center; }
+        .safe-dashboard { display: flex; flex-direction: column; height: calc(100vh - 60px); }
+        .map-container { flex: 1; position: relative; }
+        #map { height: 100%; width: 100%; }
+        .status-sheet { background: white; border-top: 1px solid #e2e8f0; padding: 1rem; }
+        .sensor-list { display: flex; gap: 0.5rem; overflow-x: auto; }
+        .sensor-card { background: #f1f5f9; padding: 0.75rem; border-radius: 0.5rem; min-width: 120px; text-align: center; }
+        .sensor-card.danger { background: #fee2e2; border: 1px solid #dc2626; }
+        .sensor-card.warning { background: #fef3c7; border: 1px solid #d97706; }
+        .sensor-card.safe { background: #dcfce7; border: 1px solid #16a34a; }
+        
+        .danger-alert { 
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0; 
+            background: #dc2626; color: white; z-index: 9999; 
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            animation: pulse 1s infinite;
+        }
+        .danger-alert.active { display: flex; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+        .alert-content { text-align: center; padding: 2rem; }
+        .alert-title { font-size: 2rem; font-weight: bold; margin-bottom: 1rem; }
+        .alert-message { font-size: 1.25rem; margin-bottom: 2rem; }
+        .evacuation-button { 
+            background: white; color: #dc2626; padding: 1rem 2rem; 
+            border: none; border-radius: 0.5rem; font-size: 1.125rem; 
+            font-weight: 600; cursor: pointer; margin: 0.5rem;
+        }
+        .controls { padding: 1rem; text-align: center; background: white; }
+        .demo-button { 
+            background: #0057B7; color: white; padding: 0.75rem 1.5rem; 
+            border: none; border-radius: 0.5rem; cursor: pointer; margin: 0 0.5rem;
+        }
+        .demo-button.danger { background: #dc2626; }
+        .demo-button.safe { background: #16a34a; }
+        
+        .leaflet-popup-content { font-size: 0.875rem; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <div class="app" id="app">
+        <header class="header">
+            <h1>Bantay-AI</h1>
+            <p>Flood Warning System - Metro Manila</p>
+        </header>
+        
+        <div class="controls">
+            <button class="demo-button safe" onclick="triggerSafe()">Safe State</button>
+            <button class="demo-button warning" onclick="triggerWarning()">Warning State</button>
+            <button class="demo-button danger" onclick="triggerDanger()">Danger Alert</button>
+            <button class="demo-button" onclick="clearAlert()">Clear Alert</button>
+        </div>
+        
+        <div class="safe-dashboard" id="safeDashboard">
+            <div class="map-container">
+                <div id="map"></div>
+            </div>
+            <div class="status-sheet">
+                <h3>Sensor Status</h3>
+                <div class="sensor-list" id="sensorList"></div>
+            </div>
+        </div>
+        
+        <div class="danger-alert" id="dangerAlert">
+            <div class="alert-content">
+                <div class="alert-title">⚠️ FLOOD ALERT</div>
+                <div class="alert-message">
+                    High water levels detected in your area!<br>
+                    Immediate evacuation recommended.
+                </div>
+                <button class="evacuation-button" onclick="openEvacuation()">🗺️ Get Evacuation Route</button>
+                <button class="evacuation-button" onclick="iAmSafe()">✅ I Am Safe</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simple state management
+        let currentState = 'safe';
+        let map, markers = [], homeMarker;
+        
+        // Sensor data
+        const sensors = [
+            { id: 1, lat: 14.5995, lng: 120.9842, name: 'Manila Bay', status: 'safe', level: 0.3 },
+            { id: 2, lat: 14.5547, lng: 121.0244, name: 'Makati CBD', status: 'safe', level: 0.2 },
+            { id: 3, lat: 14.6500, lng: 121.0500, name: 'Quezon City', status: 'safe', level: 0.1 },
+            { id: 4, lat: 14.5700, lng: 121.0000, name: 'Pasig River', status: 'warning', level: 0.7 },
+            { id: 5, lat: 14.5400, lng: 121.0500, name: 'Marikina', status: 'safe', level: 0.4 }
+        ];
+        
+        function initMap() {
+            map = L.map('map').setView([14.5995, 120.9842], 12);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            
+            // Add home marker
+            homeMarker = L.marker([14.5995, 120.9842], {
+                icon: L.divIcon({
+                    className: 'home-marker',
+                    html: '🏠',
+                    iconSize: [30, 30]
+                })
+            }).addTo(map).bindPopup('Your Home Location');
+            
+            updateSensorMarkers();
+        }
+        
+        function updateSensorMarkers() {
+            // Clear existing markers
+            markers.forEach(marker => map.removeLayer(marker));
+            markers = [];
+            
+            sensors.forEach(sensor => {
+                const color = sensor.status === 'danger' ? '#dc2626' : 
+                             sensor.status === 'warning' ? '#d97706' : '#16a34a';
+                
+                const marker = L.circleMarker([sensor.lat, sensor.lng], {
+                    radius: 8,
+                    fillColor: color,
+                    color: '#ffffff',
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                }).addTo(map);
+                
+                marker.bindPopup(`
+                    <strong>${sensor.name}</strong><br>
+                    Status: ${sensor.status.toUpperCase()}<br>
+                    Water Level: ${(sensor.level * 100).toFixed(0)}%
+                `);
+                
+                markers.push(marker);
+            });
+        }
+        
+        function updateSensorList() {
+            const list = document.getElementById('sensorList');
+            list.innerHTML = sensors.map(sensor => `
+                <div class="sensor-card ${sensor.status}">
+                    <strong>${sensor.name}</strong><br>
+                    <small>${(sensor.level * 100).toFixed(0)}%</small>
+                </div>
+            `).join('');
+        }
+        
+        function triggerSafe() {
+            currentState = 'safe';
+            sensors.forEach(s => s.status = 'safe');
+            document.getElementById('dangerAlert').classList.remove('active');
+            document.getElementById('safeDashboard').style.display = 'flex';
+            updateSensorMarkers();
+            updateSensorList();
+        }
+        
+        function triggerWarning() {
+            currentState = 'warning';
+            sensors[3].status = 'warning'; // Pasig River
+            updateSensorMarkers();
+            updateSensorList();
+        }
+        
+        function triggerDanger() {
+            currentState = 'danger';
+            sensors.forEach(s => s.status = 'danger');
+            updateSensorMarkers();
+            updateSensorList();
+            document.getElementById('dangerAlert').classList.add('active');
+            document.getElementById('safeDashboard').style.display = 'none';
+        }
+        
+        function clearAlert() {
+            triggerSafe();
+        }
+        
+        function openEvacuation() {
+            const url = 'https://www.google.com/maps/dir/?api=1&destination=14.6300,121.0000';
+            window.open(url, '_blank');
+        }
+        
+        function iAmSafe() {
+            alert('Thank you for checking in. Emergency services have been notified.');
+            clearAlert();
+        }
+        
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            initMap();
+            updateSensorList();
+        });
+    </script>
+</body>
+</html>
