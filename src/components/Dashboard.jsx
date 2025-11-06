@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { useAppStore } from '../store/appStore';
 import StatusSheet from './StatusSheet';
 import MapComponent from './MapComponent';
@@ -19,9 +19,9 @@ const Dashboard = () => {
     userLocation,
     homeLocation,
     nearbySensors,
-    wsConnected,
-    fetchCurrentStatus,
-    fetchSensorData,
+    wsConnected, // This will be false, but we'll leave it
+    fetchCurrentStatus, // This is the REAL function
+    // fetchSensorData, // <--- THIS WAS THE BUG. It's gone now.
     getUserLocation
   } = useAppStore();
 
@@ -31,10 +31,8 @@ const Dashboard = () => {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await Promise.all([
-        fetchCurrentStatus(),
-        fetchSensorData()
-      ]);
+      // Now we only call the one real function
+      await fetchCurrentStatus();
     } finally {
       setRefreshing(false);
     }
@@ -72,13 +70,10 @@ const Dashboard = () => {
           <div className="flex items-center space-x-2">
             {/* Connection Status */}
             <div className="flex items-center space-x-1">
-              {wsConnected ? (
-                <Wifi className="w-4 h-4 text-success-500" />
-              ) : (
-                <WifiOff className="w-4 h-4 text-neutral-400" />
-              )}
+              {/* We use polling, so show offline icon as "not real-time" */}
+              <WifiOff className="w-4 h-4 text-neutral-400" />
               <span className="small text-neutral-500">
-                {wsConnected ? 'Live' : 'Offline'}
+                Polling
               </span>
             </div>
 
@@ -184,7 +179,7 @@ const Dashboard = () => {
                 <h3 className="small font-semibold mb-2">Home Location</h3>
                 {homeLocation ? (
                   <p className="small text-neutral-600">
-                    {homeLocation.lat.toFixed(4)}, {homeLocation.lng.toFixed(4)}
+                    {homeLocation.address}
                   </p>
                 ) : (
                   <p className="small text-neutral-500">Not set</p>
@@ -194,24 +189,15 @@ const Dashboard = () => {
               <div className="p-4 bg-neutral-50 rounded-button">
                 <h3 className="small font-semibold mb-2">Nearby Sensors</h3>
                 <p className="small text-neutral-600">
-                  {nearbySensors.length} sensors within 5km
+                  {nearbySensors.length} sensors found in last update.
                 </p>
               </div>
               
               <div className="p-4 bg-neutral-50 rounded-button">
                 <h3 className="small font-semibold mb-2">Connection</h3>
                 <div className="flex items-center space-x-2">
-                  {wsConnected ? (
-                    <>
-                      <Wifi className="w-4 h-4 text-success-500" />
-                      <span className="small text-success-600">Connected to live data</span>
-                    </>
-                  ) : (
-                    <>
-                      <WifiOff className="w-4 h-4 text-neutral-400" />
-                      <span className="small text-neutral-500">Offline mode</span>
-                    </>
-                  )}
+                    <WifiOff className="w-4 h-4 text-neutral-400" />
+                    <span className="small text-neutral-500">Polling every 5 minutes</span>
                 </div>
               </div>
             </div>
