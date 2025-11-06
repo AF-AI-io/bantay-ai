@@ -13,13 +13,10 @@ function App() {
     currentStatus,
     isOnboarding,
     initializeUser,
-    fetchCurrentStatus,
-    fetchSensorData,
     cleanup
   } = useAppStore();
 
   const [appReady, setAppReady] = useState(false);
-  const [isPollingActive, setIsPollingActive] = useState(false);
 
   // Initialize app on mount
   useEffect(() => {
@@ -30,39 +27,19 @@ function App() {
           navigator.serviceWorker.register('/sw.js')
             .then((registration) => {
               console.log('[App] Service worker registered:', registration);
-              
-              // Listen for service worker updates
-              registration.addEventListener('updatefound', () => {
-                const newWorker = registration.installing;
-                if (newWorker) {
-                  newWorker.addEventListener('statechange', () => {
-                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                      console.log('[App] New content available, will use on next load');
-                    }
-                  });
-                }
-              });
             })
             .catch((error) => {
               console.error('[App] Service worker registration failed:', error);
             });
         }
 
-        // Initialize user data
-        await initializeUser();
-
-        // If user exists, fetch initial data
-        if (hasCompletedOnboarding) {
-          await Promise.all([
-            fetchCurrentStatus(),
-            fetchSensorData()
-          ]);
-        }
-
+        // Initialize user data from local storage
+        initializeUser();
+        
         setAppReady(true);
       } catch (error) {
         console.error('[App] Initialization failed:', error);
-        setAppReady(true); // Still allow app to load even if some init fails
+        setAppReady(true);
       }
     };
 
@@ -72,47 +49,43 @@ function App() {
     return () => {
       cleanup();
     };
-  }, []);
+  }, [initializeUser, cleanup]); // Add dependencies
 
-  // Start threat monitoring when user completes onboarding
+  // Start or stop polling based on app state
   useEffect(() => {
-    if (hasCompletedOnboarding && appReady && !isPollingActive) {
-      console.log('[App] Starting threat monitoring (polling every 5 minutes)...');
+    if (appReady && hasCompletedOnboarding && currentStatus !== 'danger') {
+      console.log('[App] Starting threat monitoring...');
       startThreatMonitoring();
-      setIsPollingActive(true);
-    }
-  }, [hasCompletedOnboarding, appReady, isPollingActive]);
-
-  // Stop threat monitoring when app is in danger state
-  useEffect(() => {
-    if (currentStatus === 'danger' && isPollingActive) {
+    } else if (currentStatus === 'danger') {
       console.log('[App] Stopping threat monitoring - danger state active');
       stopThreatMonitoring();
-      setIsPollingActive(false);
     }
-  }, [currentStatus, isPollingActive]);
+  }, [appReady, hasCompletedOnboarding, currentStatus]);
 
-  // Handle URL parameters for direct links
+  // Handle URL parameters for direct links (e.g., from notifications)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const alert = urlParams.get('alert');
     
     if (alert === 'danger') {
-      useAppStore.getState().setCurrentStatus('danger');
+      useAppStore.getState().setThreatData({ 
+        level: 'danger', 
+        description: 'Threat detected via URL parameter.' 
+      });
     }
   }, []);
 
-  // Show loading screen while initializing
-  if (!appReady || isLoading) {
+  // Show loading screen
+  if (isLoading || !appReady) {
     return <LoadingScreen />;
   }
 
-  // Show onboarding if not completed
-  if (!hasCompletedOnboarding && !isOnboarding) {
+  // Show onboarding
+  if (isOnboarding || !hasCompletedOnboarding) {
     return <OnboardingFlow />;
   }
 
-  // Show danger alert if status is danger
+  // Show danger alert
   if (currentStatus === 'danger') {
     return <DangerAlert />;
   }
