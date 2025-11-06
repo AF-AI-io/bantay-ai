@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useAppStore } from '../store/appStore';
 import { 
   Shield, 
-  Bell, 
   MapPin, 
   CheckCircle, 
   ChevronRight,
@@ -11,35 +10,18 @@ import {
 
 const OnboardingFlow = () => {
   const { 
-    requestNotificationPermission,
     requestLocationPermission,
-    setOnboarding,
     setCompletedOnboarding,
-    setHomeLocation,
     userLocation,
-    getUserLocation
+    updateUserLocation // Use updateUserLocation instead of setHomeLocation
   } = useAppStore();
 
   const [currentStep, setCurrentStep] = useState(1);
-  const [notificationGranted, setNotificationGranted] = useState(false);
   const [locationGranted, setLocationGranted] = useState(false);
   const [homeSet, setHomeSet] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const totalSteps = 3;
-
-  const handleNotificationRequest = async () => {
-    setIsProcessing(true);
-    const permission = await requestNotificationPermission();
-    setNotificationGranted(permission === 'granted');
-    setIsProcessing(false);
-    
-    if (permission === 'granted') {
-      setTimeout(() => {
-        setCurrentStep(2);
-      }, 1000);
-    }
-  };
+  const totalSteps = 2; // We now have 2 steps
 
   const handleLocationRequest = async () => {
     setIsProcessing(true);
@@ -49,30 +31,42 @@ const OnboardingFlow = () => {
     
     if (permission === 'granted') {
       setTimeout(() => {
-        setCurrentStep(3);
+        setCurrentStep(2);
       }, 1000);
     }
   };
 
   const handleHomeSetup = async () => {
     if (!userLocation) {
-      // Get user location if not already available
-      getUserLocation();
+      alert("Still trying to find your location. Please wait a moment and try again.");
+      setIsProcessing(false);
+      return;
     }
     
     setIsProcessing(true);
     
-    // Simulate home location setting
+    // Create the location object with a placeholder address
+    const homeLocation = {
+        lat: userLocation.lat,
+        lng: userLocation.lng,
+        address: `Home (${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)})` // Add a placeholder address
+    };
+
+    // Use the updateUserLocation function from the store
+    await updateUserLocation(homeLocation);
+
+    setHomeSet(true);
+    
+    // Wait a moment, then complete onboarding
     setTimeout(() => {
-      setHomeSet(true);
       setCompletedOnboarding(true);
       setIsProcessing(false);
-    }, 1000);
+    }, 1500);
   };
 
   const renderStepIndicator = () => (
     <div className="flex justify-center space-x-2 mb-8">
-      {[1, 2, 3].map((step) => (
+      {[1, 2].map((step) => ( // Only map 2 steps
         <div
           key={step}
           className={`w-3 h-3 rounded-full transition-colors duration-300 ${
@@ -85,58 +79,7 @@ const OnboardingFlow = () => {
     </div>
   );
 
-  const renderStep1 = () => (
-    <div className="text-center">
-      <div className="mb-8">
-        <div className="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-6">
-          <Bell className="w-10 h-10 text-primary-500" />
-        </div>
-        <h1 className="h1 mb-4">Enable Notifications</h1>
-        <p className="body text-neutral-600 mb-6 max-w-sm mx-auto">
-          To send you life-saving alerts, we need permission to send notifications. 
-          These will only be used for critical emergency warnings.
-        </p>
-      </div>
-
-      <button
-        onClick={handleNotificationRequest}
-        disabled={isProcessing || notificationGranted}
-        className={`btn-primary w-full flex items-center justify-center space-x-2 ${
-          notificationGranted ? 'bg-success-500' : ''
-        }`}
-      >
-        {isProcessing ? (
-          <>
-            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full loading-spinner" />
-            <span>Requesting...</span>
-          </>
-        ) : notificationGranted ? (
-          <>
-            <CheckCircle className="w-5 h-5" />
-            <span>Notifications Enabled</span>
-          </>
-        ) : (
-          <>
-            <Bell className="w-5 h-5" />
-            <span>Allow Notifications</span>
-          </>
-        )}
-      </button>
-
-      {notificationGranted && (
-        <div className="mt-4 p-3 bg-success-100 border border-success-200 rounded-button">
-          <div className="flex items-center space-x-2">
-            <CheckCircle className="w-4 h-4 text-success-500" />
-            <span className="small text-success-700">
-              You'll receive critical flood warnings here
-            </span>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
-  const renderStep2 = () => (
+  const renderStep1 = () => ( // This is the old Step 2
     <div className="text-center">
       <div className="mb-8">
         <div className="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -187,7 +130,7 @@ const OnboardingFlow = () => {
     </div>
   );
 
-  const renderStep3 = () => (
+  const renderStep2 = () => ( // This is the old Step 3
     <div className="text-center">
       <div className="mb-8">
         <div className="w-20 h-20 bg-success-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -195,26 +138,32 @@ const OnboardingFlow = () => {
         </div>
         <h1 className="h1 mb-4">Set Your Home Location</h1>
         <p className="body text-neutral-600 mb-6 max-w-sm mx-auto">
-          Tap anywhere on the map to set your home location. This is the primary address 
-          we'll protect and monitor for flood risks.
+          We will use your current location as your "Home Base" to monitor for flood risks.
         </p>
       </div>
 
       {!homeSet ? (
         <button
           onClick={handleHomeSetup}
-          disabled={isProcessing}
-          className="btn-primary w-full flex items-center justify-center space-x-2"
+          disabled={isProcessing || !userLocation}
+          className={`btn-primary w-full flex items-center justify-center space-x-2 ${
+            !userLocation ? 'bg-neutral-400 cursor-not-allowed' : ''
+          }`}
         >
           {isProcessing ? (
             <>
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full loading-spinner" />
               <span>Setting Home...</span>
             </>
+          ) : !userLocation ? (
+            <>
+              <MapPin className="w-5 h-5" />
+              <span>Waiting for Location...</span>
+            </>
           ) : (
             <>
               <MapPin className="w-5 h-5" />
-              <span>Use Current Location</span>
+              <span>Use Current Location as Home</span>
               <ChevronRight className="w-5 h-5" />
             </>
           )}
@@ -224,11 +173,11 @@ const OnboardingFlow = () => {
           <div className="flex items-center space-x-2 mb-2">
             <CheckCircle className="w-5 h-5 text-success-500" />
             <span className="small font-semibold text-success-700">
-              Home Location Set
+              All Set! You are Protected.
             </span>
           </div>
           <p className="small text-success-600">
-            We'll monitor this location for flood risks
+            We are now monitoring this location for flood risks.
           </p>
         </div>
       )}
@@ -255,7 +204,6 @@ const OnboardingFlow = () => {
           <div className="min-h-[400px] flex flex-col justify-center">
             {currentStep === 1 && renderStep1()}
             {currentStep === 2 && renderStep2()}
-            {currentStep === 3 && renderStep3()}
           </div>
 
           {/* Help Text */}
